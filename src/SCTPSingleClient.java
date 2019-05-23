@@ -33,7 +33,7 @@ public class SCTPSingleClient extends Thread {
 
         InetSocketAddress serverAddr = new InetSocketAddress("169.254.235.209",
                 SERVER_PORT);
-        ByteBuffer buf = ByteBuffer.allocateDirect(212992);
+
         SctpChannel sc = SctpChannel.open(serverAddr, 0, 0);
 
         AssociationHandler assocHandler = new AssociationHandler();
@@ -42,6 +42,7 @@ public class SCTPSingleClient extends Thread {
         sc.setOption(SO_RCVBUF, 212992);
         System.out.println(sc.getOption(SO_RCVBUF));
         Instant starts = Instant.now();
+        ByteBuffer buf = ByteBuffer.allocateDirect(8192);
         MessageInfo messageInfo = sc.receive(buf, System.out, assocHandler);
 
         while (messageInfo != null) {
