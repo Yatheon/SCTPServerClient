@@ -56,8 +56,8 @@
       <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/src/startClient.java">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="60">
-              <caret line="4" selection-start-line="4" selection-end-line="4" />
+            <state relative-caret-position="75">
+              <caret line="5" column="14" selection-start-line="5" selection-start-column="14" selection-end-line="5" selection-end-column="14" />
             </state>
           </provider>
         </entry>
@@ -128,8 +128,8 @@
         <option value="$PROJECT_DIR$/SendFile.txt" />
         <option value="$PROJECT_DIR$/src/SCTPSingleServer.java" />
         <option value="$PROJECT_DIR$/src/start.java" />
-        <option value="$PROJECT_DIR$/src/startClient.java" />
         <option value="$PROJECT_DIR$/src/SCTPSingleClient.java" />
+        <option value="$PROJECT_DIR$/src/startClient.java" />
       </list>
     </option>
   </component>
@@ -168,6 +168,7 @@
     </panes>
   </component>
   <component name="PropertiesComponent">
+    <property name="SHARE_PROJECT_CONFIGURATION_FILES" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="aspect.path.notification.shown" value="true" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
@@ -212,12 +213,12 @@
       <option name="presentableId" value="Default" />
       <updated>1558520475065</updated>
       <workItem from="1558520479030" duration="8114000" />
-      <workItem from="1558529037646" duration="19943000" />
+      <workItem from="1558529037646" duration="20544000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="28057000" />
+    <option name="totallyTimeSpent" value="28658000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="0" y="27" width="960" height="1053" extended-state="4" />
@@ -335,8 +336,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/src/startClient.java">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="60">
-          <caret line="4" selection-start-line="4" selection-end-line="4" />
+        <state relative-caret-position="75">
+          <caret line="5" column="14" selection-start-line="5" selection-start-column="14" selection-end-line="5" selection-end-column="14" />
         </state>
       </provider>
     </entry>
