@@ -58,15 +58,15 @@ public class SCTPSingleServer implements Runnable {
                 }
                 bis.read(byteArray, 0, byteArray.length);
                 ByteBuffer buf = ByteBuffer.wrap(byteArray);
-                //System.out.println("Sending Packet : "+ (i+1));
+                System.out.println("Sending Packet : "+ (i+1));
                 if (bytesLeft < packetSize) {
-                    //     System.out.println("Packet size: " + bytesLeft);
+                         System.out.println("Packet size: " + bytesLeft);
                     bytesLeft -= bytesLeft;
                 } else {
-                    //   System.out.println("Packet size: " + packetSize);
+                       System.out.println("Packet size: " + packetSize);
                     bytesLeft -= packetSize;
                 }
-                //  System.out.println("Bytes left to send: "+ bytesLeft +"\n");
+                  System.out.println("Bytes left to send: "+ bytesLeft +"\n");
                 MessageInfo messageInfo = MessageInfo.createOutgoing(null, 0);
                 sc.send(buf, messageInfo);
 
@@ -78,7 +78,7 @@ public class SCTPSingleServer implements Runnable {
         } catch (Exception e) {
             System.out.println("Connection closed");
         }
-        
+
     }
 
 }
