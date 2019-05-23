@@ -16,6 +16,11 @@ public class SCTPSingleServer implements Runnable {
     public SCTPSingleServer(String[] args, SctpChannel sc) {
         this.myFile = new File(args[0]);
         this.sc = sc;
+
+       try {
+           sc.setOption(SCTP_DISABLE_FRAGMENTS, true);
+       }catch (Exception e){
+       }
     }
 
     @Override
