@@ -9,11 +9,12 @@ import java.nio.ByteBuffer;
 
 import static com.sun.nio.sctp.SctpStandardSocketOptions.*;
 public class SCTPSingleServer implements Runnable {
-    static int SERVER_PORT = 4477;
+    private SctpChannel sc;
     private File myFile;
 
-    public SCTPSingleServer(String[] args){
+    public SCTPSingleServer(String[] args, SctpChannel sc){
         this.myFile = new File(args[0]);
+        this.sc = sc;
     }
     @Override
     public void run() {
@@ -27,9 +28,6 @@ public class SCTPSingleServer implements Runnable {
 
     public void serverRun() throws IOException {
 
-        SctpServerChannel ssc = SctpServerChannel.open();
-        InetSocketAddress serverAddr = new InetSocketAddress(SERVER_PORT);
-        ssc.bind(serverAddr);
 
         double packetSizeDouble = 10240;
         int packetSize = 10240;
@@ -39,16 +37,14 @@ public class SCTPSingleServer implements Runnable {
 
         long fileLength = myFile.length();
         float packetsToSend = (float) Math.ceil(fileLength / packetSizeDouble);
-        bytesLeft = (int)fileSize;
         BufferedInputStream bis = new BufferedInputStream(new FileInputStream(myFile));
 
+
         while (true) {
-            //File myFile = new File("FileToSend.tar.gz");
             bytesLeft = (int)fileSize;
             try {
 
 
-                SctpChannel sc = ssc.accept();
                 for (int i = 0; i < packetsToSend; i++) {
                     byte[] byteArray;
                     if (bytesLeft < packetSize) {

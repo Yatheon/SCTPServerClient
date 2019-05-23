@@ -29,7 +29,7 @@ public class SCTPSingleClient extends Thread {
     }
 
     public static void clientRun() throws IOException {
-        File file = new File("FileToReceive.tar.gz");
+        File file = new File("file");
 
         InetSocketAddress serverAddr = new InetSocketAddress("169.254.235.209",
                 SERVER_PORT);
