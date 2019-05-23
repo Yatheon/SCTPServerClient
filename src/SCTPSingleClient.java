@@ -41,8 +41,9 @@ public class SCTPSingleClient extends Thread {
        // System.out.println(sc.getOption(SO_RCVBUF));
        // sc.setOption(SO_RCVBUF, 212992);
         //System.out.println(sc.getOption(SO_RCVBUF));
-        Instant starts = Instant.now();
+
         ByteBuffer buf = ByteBuffer.allocateDirect(8192);
+        Instant starts = Instant.now();
         MessageInfo messageInfo = sc.receive(buf, System.out, assocHandler);
 
         while (messageInfo != null) {
@@ -63,10 +64,13 @@ public class SCTPSingleClient extends Thread {
 
 
         }
+        sc.close();
         Instant ends = Instant.now();
         Duration duration = Duration.between(starts, ends);
-        System.out.println("ReceiveTime: " + duration.toMillis());
-        sc.close();
+        System.out.println("ReceiveTime: " + duration.toNanos());
+        long fish = file.length()/duration.getNano();
+        System.out.println("Bytes per nano" + fish);
+
     }
 
     static class AssociationHandler extends AbstractNotificationHandler<PrintStream> {
