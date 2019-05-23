@@ -31,7 +31,7 @@ public class SCTPSingleClient extends Thread {
     public static void clientRun() throws IOException {
         File file = new File("FileToReceive.tar.gz");
 
-        InetSocketAddress serverAddr = new InetSocketAddress("localhost",
+        InetSocketAddress serverAddr = new InetSocketAddress("169.254.235.209",
                 SERVER_PORT);
         ByteBuffer buf = ByteBuffer.allocateDirect(212992);
         SctpChannel sc = SctpChannel.open(serverAddr, 0, 0);
