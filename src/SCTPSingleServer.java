@@ -8,14 +8,16 @@ import java.nio.ByteBuffer;
 //import static java.net.SocketOptions.SO_RCVBUF;
 
 import static com.sun.nio.sctp.SctpStandardSocketOptions.*;
+
 public class SCTPSingleServer implements Runnable {
     private SctpChannel sc;
     private File myFile;
 
-    public SCTPSingleServer(String[] args, SctpChannel sc){
+    public SCTPSingleServer(String[] args, SctpChannel sc) {
         this.myFile = new File(args[0]);
         this.sc = sc;
     }
+
     @Override
     public void run() {
         try {
@@ -40,44 +42,43 @@ public class SCTPSingleServer implements Runnable {
         BufferedInputStream bis = new BufferedInputStream(new FileInputStream(myFile));
 
 
-        while (true) {
-            bytesLeft = (int)fileSize;
-            try {
+        bytesLeft = (int) fileSize;
+        try {
 
 
-                for (int i = 0; i < packetsToSend; i++) {
-                    byte[] byteArray;
-                    if (bytesLeft < packetSize) {
-                        byteArray = new byte[bytesLeft];
+            for (int i = 0; i < packetsToSend; i++) {
+                byte[] byteArray;
+                if (bytesLeft < packetSize) {
+                    byteArray = new byte[bytesLeft];
 
 
-                    } else {
-                        byteArray = new byte[packetSize];
+                } else {
+                    byteArray = new byte[packetSize];
 
-                    }
-                    bis.read(byteArray, 0, byteArray.length);
-                    ByteBuffer buf = ByteBuffer.wrap(byteArray);
-                    //System.out.println("Sending Packet : "+ (i+1));
-                    if (bytesLeft < packetSize) {
-                        //     System.out.println("Packet size: " + bytesLeft);
-                        bytesLeft -= bytesLeft;
-                    } else {
-                        //   System.out.println("Packet size: " + packetSize);
-                        bytesLeft -= packetSize;
-                    }
-                    //  System.out.println("Bytes left to send: "+ bytesLeft +"\n");
-                    MessageInfo messageInfo = MessageInfo.createOutgoing(null, 0);
-                    sc.send(buf, messageInfo);
-
-
-                    buf.clear();
                 }
+                bis.read(byteArray, 0, byteArray.length);
+                ByteBuffer buf = ByteBuffer.wrap(byteArray);
+                //System.out.println("Sending Packet : "+ (i+1));
+                if (bytesLeft < packetSize) {
+                    //     System.out.println("Packet size: " + bytesLeft);
+                    bytesLeft -= bytesLeft;
+                } else {
+                    //   System.out.println("Packet size: " + packetSize);
+                    bytesLeft -= packetSize;
+                }
+                //  System.out.println("Bytes left to send: "+ bytesLeft +"\n");
+                MessageInfo messageInfo = MessageInfo.createOutgoing(null, 0);
+                sc.send(buf, messageInfo);
 
-                sc.close();
-            }catch (Exception e){
-                System.out.println("Connection closed");
+
+                buf.clear();
             }
+
+            sc.close();
+        } catch (Exception e) {
+            System.out.println("Connection closed");
         }
+        
     }
 
 }
