@@ -8,10 +8,13 @@ import java.nio.ByteBuffer;
 //import static java.net.SocketOptions.SO_RCVBUF;
 
 import static com.sun.nio.sctp.SctpStandardSocketOptions.*;
-public class SCTPSingleServer extends Thread {
+public class SCTPSingleServer implements Runnable {
     static int SERVER_PORT = 4477;
+    private File myFile;
 
-
+    public SCTPSingleServer(String[] args){
+        this.myFile = new File(args[0]);
+    }
     @Override
     public void run() {
         try {
@@ -22,13 +25,13 @@ public class SCTPSingleServer extends Thread {
         }
     }
 
-    public static void serverRun() throws IOException {
+    public void serverRun() throws IOException {
 
         SctpServerChannel ssc = SctpServerChannel.open();
         InetSocketAddress serverAddr = new InetSocketAddress(SERVER_PORT);
         ssc.bind(serverAddr);
         while (true) {
-            File myFile = new File("FileToSend.tar.gz");
+            //File myFile = new File("FileToSend.tar.gz");
 
             double packetSizeDouble = 10240;
             int packetSize = 10240;

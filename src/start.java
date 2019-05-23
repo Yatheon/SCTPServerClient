@@ -1,8 +1,8 @@
 public class start {
     public static void main(String[] args) throws Exception {
-        SCTPSingleServer SCTPSingleServer = new SCTPSingleServer();
+        Runnable SCTPSingleServer = new SCTPSingleServer(args);
 
-            SCTPSingleServer.start();
+            SCTPSingleServer.run();
 
 
     }
