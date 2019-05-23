@@ -69,7 +69,9 @@ public class SCTPSingleClient extends Thread {
         Duration duration = Duration.between(starts, ends);
         System.out.println("ReceiveTime: " + duration.toNanos());
         System.out.println("File lenght: "+ file.length()+ " DurationToNanos: "+duration.toNanos() + " DurationGetNano: "+duration.getNano() );
-        long fish = file.length()/duration.getNano();
+
+        float fish = (float)file.length()/ duration.toNanos();
+
         System.out.println("Bytes per nano: " + fish);
 
     }
