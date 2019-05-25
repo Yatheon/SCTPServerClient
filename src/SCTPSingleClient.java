@@ -18,7 +18,7 @@ public class SCTPSingleClient extends Thread {
     static int SERVER_PORT = 4477;
     static int FILES_TO_RECIEVE = 10;
     static String FILE_TO_RECIEVE = "fishRecieve";
-    static String SERVER_ADDRESS = "localhost";
+    static String SERVER_ADDRESS = "169.254.235.209";
     @Override
     public void run() {
 
