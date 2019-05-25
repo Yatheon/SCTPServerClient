@@ -6,7 +6,7 @@ public class startSingleSCTPServer {
 
 
     public static void main(String[] args) throws Exception {
-        new Thread(new SCTPSingleServer()).start();
+        SCTPSingleServer.serverRun();
 
     }
 }

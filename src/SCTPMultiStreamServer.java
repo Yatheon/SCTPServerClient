@@ -37,7 +37,19 @@ public class SCTPMultiStreamServer implements Runnable {
 
     public void serverRun() throws IOException {
 
+       /*File[] files = new File[FILES_TO_SEND];
+        long[] fileSize = new long[FILES_TO_SEND];
+        int[] bytesLeft = new int[FILES_TO_SEND];
+        float[] packetsToSend = new float[FILES_TO_SEND];
+        double packetSizeDouble = 10240;
+        int packetSize = 10240;
 
+        for (int i = 0; i < FILES_TO_SEND; i++) {
+            files[i] = new File( "FilesToSend/"+FILE_TO_SEND);
+            fileSize[i] = files[i].length();
+            bytesLeft[i] = (int) fileSize[i];
+            packetsToSend[i] = (float) Math.ceil(fileSize[i] / packetSizeDouble);
+        }*/
         double packetSizeDouble = 10240;
         int packetSize = 10240;
         long fileSize = myFile.length();
