@@ -16,7 +16,9 @@ import static com.sun.nio.sctp.SctpStandardSocketOptions.*;
 
 public class SCTPSingleClient extends Thread {
     static int SERVER_PORT = 4477;
-
+    static int FILES_TO_RECIEVE = 10;
+    static String FILE_TO_RECIEVE = "fishRecieve";
+    static String SERVER_ADDRESS = "localhost";
     @Override
     public void run() {
 
@@ -29,51 +31,61 @@ public class SCTPSingleClient extends Thread {
     }
 
     public static void clientRun() throws IOException {
-        File file = new File("file");
-
-        InetSocketAddress serverAddr = new InetSocketAddress("169.254.235.209",
+        File file = new File(FILE_TO_RECIEVE);
+        Instant firstConnect;
+        Instant done;
+        Duration timeForAllFiles;
+        InetSocketAddress serverAddr = new InetSocketAddress(SERVER_ADDRESS,
                 SERVER_PORT);
 
-        SctpChannel sc = SctpChannel.open(serverAddr, 0, 0);
+        firstConnect = Instant.now();
 
-        AssociationHandler assocHandler = new AssociationHandler();
+        for (int i = 0; i < FILES_TO_RECIEVE; i++) {
+            SctpChannel sc = SctpChannel.open();
 
-       // System.out.println(sc.getOption(SO_RCVBUF));
-       // sc.setOption(SO_RCVBUF, 212992);
-        //System.out.println(sc.getOption(SO_RCVBUF));
+            sc.connect(serverAddr, 0, 0);
 
-        ByteBuffer buf = ByteBuffer.allocateDirect(8192);
-        Instant starts = Instant.now();
-        MessageInfo messageInfo = sc.receive(buf, System.out, assocHandler);
-
-        while (messageInfo != null) {
+            AssociationHandler assocHandler = new AssociationHandler();
 
 
-            buf.flip();
-            if (buf.remaining() > 0 && messageInfo.streamNumber() == 0) {
+            ByteBuffer buf = ByteBuffer.allocateDirect(8192);
+            Instant starts = Instant.now();
+            MessageInfo messageInfo = sc.receive(buf, System.out, assocHandler);
 
-                byte[] myBytes = new byte[buf.remaining()];
-                buf.get(myBytes, 0, myBytes.length);
-                try (FileOutputStream fos = new FileOutputStream(file, true)) {
-                    fos.write(myBytes);
+            while (messageInfo != null) {
+
+
+                buf.flip();
+                if (buf.remaining() > 0 && messageInfo.streamNumber() == 0) {
+
+                    byte[] myBytes = new byte[buf.remaining()];
+                    buf.get(myBytes, 0, myBytes.length);
+                    try (FileOutputStream fos = new FileOutputStream(file, true)) {
+                        fos.write(myBytes);
+                    }
                 }
-            }
-            buf.clear();
+                buf.clear();
 
-            messageInfo = sc.receive(buf, System.out, assocHandler);
+                messageInfo = sc.receive(buf, System.out, assocHandler);
+
+
+            }
+            sc.close();
+            Instant ends = Instant.now();
+            Duration duration = Duration.between(starts, ends);
+            System.out.println("\n\nFILE "+i);
+            System.out.println("ReceiveTime: " + duration.toMillis());
+            System.out.println("File lenght: " + file.length());
+
+            float fish = (float) file.length() / duration.toMillis();
+            file.delete();
 
 
         }
-        sc.close();
-        Instant ends = Instant.now();
-        Duration duration = Duration.between(starts, ends);
-        System.out.println("ReceiveTime: " + duration.toNanos());
-        System.out.println("File lenght: "+ file.length()+ " DurationToNanos: "+duration.toNanos() + " DurationGetNano: "+duration.getNano() );
 
-        float fish = (float)file.length()/ duration.toNanos();
-
-        System.out.println("Bytes per nano: " + fish);
-
+        done = Instant.now();
+        timeForAllFiles = Duration.between(firstConnect, done);
+        System.out.println("Time to get all files: "+ timeForAllFiles.toMillis()+ "ms");
     }
 
     static class AssociationHandler extends AbstractNotificationHandler<PrintStream> {
@@ -83,7 +95,7 @@ public class SCTPSingleClient extends Thread {
             if (not.event().equals(COMM_UP)) {
                 int outbound = not.association().maxOutboundStreams();
                 int inbound = not.association().maxInboundStreams();
-                 stream.printf("New association setup with %d outbound streams" + ", and %d inbound streams.\n", outbound, inbound);
+              //   stream.printf("New association setup with %d outbound streams" + ", and %d inbound streams.\n", outbound, inbound);
             }
 
             return HandlerResult.CONTINUE;
@@ -91,7 +103,7 @@ public class SCTPSingleClient extends Thread {
 
         public HandlerResult handleNotification(ShutdownNotification not,
                                                 PrintStream stream) {
-             stream.printf("The association has been shutdown.\n");
+            // stream.printf("The association has been shutdown.\n");
             return HandlerResult.RETURN;
         }
     }
