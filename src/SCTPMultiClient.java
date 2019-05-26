@@ -20,6 +20,7 @@ public class SCTPMultiClient {
 
     public static void clientRun(int FILES_TO_RECIEVE, int STREAMS_TO_OPEN) throws IOException {
         Duration durAccTest = Duration.ZERO;
+        int filesCounted = 0;
         BufferedWriter out = new BufferedWriter(new FileWriter("MultiClientTimes.txt"));
         InetSocketAddress serverAddr = new InetSocketAddress(SERVER_ADDRESS,
                 SERVER_PORT);
@@ -49,16 +50,16 @@ public class SCTPMultiClient {
                     }
                 }
                 buf.clear();
-                Instant test = Instant.now();
+
                 messageInfo = sc.receive(buf, System.out, assocHandler);
-                Instant test2 = Instant.now();
-                Duration durtest = Duration.between(test, test2);
-                durAccTest = durAccTest.plus(durtest);
             }
             Instant ends = Instant.now();
             sc.close();
             Duration duration = Duration.between(starts, ends);
-
+            if(!(duration.toNanos()>1.5*durAccTest.toNanos()/filesCounted)) {
+                durAccTest = durAccTest.plus(duration);
+                filesCounted++;
+            }
             long test = duration.toMillis();
             out.write(test + "\n");
 
