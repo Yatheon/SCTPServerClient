@@ -1,23 +1,26 @@
 import com.sun.nio.sctp.MessageInfo;
 import com.sun.nio.sctp.SctpChannel;
 import com.sun.nio.sctp.SctpServerChannel;
+import com.sun.nio.sctp.SctpStandardSocketOptions;
 
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.ClosedChannelException;
+import java.time.Duration;
+import java.time.Instant;
 
-import static com.sun.nio.sctp.SctpStandardSocketOptions.*;
+import static com.sun.nio.sctp.SctpStandardSocketOptions.SCTP_INIT_MAXSTREAMS;
+import static com.sun.nio.sctp.SctpStandardSocketOptions.SO_SNDBUF;
 
-import static java.net.SocketOptions.SO_RCVBUF;
 
 public class SCTPMultiServer {
     private SctpChannel sc;
     private File myFile;
     static int SERVER_PORT = 4477;
     static String PATH_TO_FILES = "FilesToSend/";
-    static String FILE_TO_SEND = "fesh";
-    static int PACKET_SIZE = 10240;
-    //  sc.setOption(SCTP_DISABLE_FRAGMENTS, true);
+    static String FILE_TO_SEND = "fish100";
+    static int PACKET_SIZE = 10000;
 
 
     public static void serverRun() throws IOException {
@@ -25,13 +28,13 @@ public class SCTPMultiServer {
         SctpServerChannel ssc = SctpServerChannel.open();
         InetSocketAddress serverAddr = new InetSocketAddress(SERVER_PORT);
         ssc.bind(serverAddr);
+        ssc.setOption(SCTP_INIT_MAXSTREAMS, SctpStandardSocketOptions.InitMaxStreams.create(0, 100));
+
         while (true) {
             System.out.println("Waiting for connection");
             SctpChannel sc = ssc.accept();
-            InitMaxStreams initMaxStreams = sc.getOption(SCTP_INIT_MAXSTREAMS);
-            int FILES_TO_SEND = initMaxStreams.maxOutStreams();
-            System.out.println("In streams: " + initMaxStreams.maxInStreams());
-            System.out.println("Out streams: " + initMaxStreams.maxOutStreams());
+            int FILES_TO_SEND = sc.association().maxOutboundStreams();
+            System.out.println("Out streams: " + sc.association().maxOutboundStreams());
             splitFile(new File(PATH_TO_FILES + FILE_TO_SEND), FILES_TO_SEND);
             File[] files = new File[FILES_TO_SEND];
             long[] fileSize = new long[FILES_TO_SEND];
@@ -55,14 +58,15 @@ public class SCTPMultiServer {
 
             ByteBuffer buf;
 
+            try {
+                MessageInfo messageInfo = MessageInfo.createOutgoing(null, 0);
+                for (int i = 0; i < FILES_TO_SEND; i++) {
+                    Instant start = Instant.now();
+                    bytesLeft[i] = (int) fileSize[i];
+                    // bytesSent[i] = 0;
 
-            for (int i = 0; i < FILES_TO_SEND; i++) {
-
-                bytesLeft[i] = (int) fileSize[i];
-                // bytesSent[i] = 0;
-
-                try {
                     for (int j = 0; j < packetsToSend[i]; j++) {
+
                         if (bytesLeft[i] < PACKET_SIZE) {
                             buf = ByteBuffer.wrap(byteArray[i], bytesSent[i], bytesLeft[i]);
 
@@ -75,24 +79,39 @@ public class SCTPMultiServer {
                             bytesLeft[i] -= PACKET_SIZE;
                         }
 
-                        MessageInfo messageInfo = MessageInfo.createOutgoing(null, i);
+
+                        messageInfo.streamNumber(i);
+
                         sc.send(buf, messageInfo);
 
 
                         buf.clear();
                     }
-
-                    sc.close();
-                    System.out.println("File sent");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    System.out.println("Connection closed");
+                    Instant end = Instant.now();
+                    System.out.println("Time to process: "+Duration.between(start,end));
                 }
+                sc.close();
+                System.out.println("Files sent");
+                for (int i = 0; i < FILES_TO_SEND; i++){
+                   files[i].delete();
+                }
+
+            } catch (ClosedChannelException cce) {
+                cce.printStackTrace();
+                System.out.println("Connection closed");
+                break;
+            } catch (Exception e) {
+                e.printStackTrace();
+                System.out.println("Connection closed");
             }
+
         }
 
     }
 
+    public static void deleteFiles(File f, int nrOfFiles){
+
+    }
     public static void splitFile(File f, int nrOfFiles) throws IOException {
         int partCounter = 0;
         double fish = Math.ceil((double) f.length() / (double) nrOfFiles);

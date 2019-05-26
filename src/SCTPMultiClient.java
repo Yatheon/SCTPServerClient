@@ -1,79 +1,83 @@
 import com.sun.nio.sctp.*;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.PrintStream;
+import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.time.Instant;
 
 import static com.sun.nio.sctp.AssociationChangeNotification.AssocChangeEvent.COMM_UP;
+import static com.sun.nio.sctp.SctpStandardSocketOptions.SCTP_INIT_MAXSTREAMS;
 
 
-public class SCTPMultiClient extends Thread {
+public class SCTPMultiClient {
     static int SERVER_PORT = 4477;
-    static int FILES_TO_RECIEVE = 10;
+    // static int FILES_TO_RECIEVE = 2;
+    // static int STREAMS_TO_OPEN = 3;
     static String FILE_TO_RECIEVE = "fishRecieve";
-    static String SERVER_ADDRESS = "169.254.235.209";
+    static String SERVER_ADDRESS = "localhost";
 
 
-    public static void clientRun() throws IOException {
-        File file = new File(FILE_TO_RECIEVE);
-        Instant done;
-        Duration timeForAllFiles;
+    public static void clientRun(int FILES_TO_RECIEVE, int STREAMS_TO_OPEN) throws IOException {
+        Duration durAccTest = Duration.ZERO;
+        BufferedWriter out = new BufferedWriter(new FileWriter("MultiClientTimes.txt"));
         InetSocketAddress serverAddr = new InetSocketAddress(SERVER_ADDRESS,
                 SERVER_PORT);
 
-        Instant firstConnect = Instant.now();
-
-        for (int i = 0; i < FILES_TO_RECIEVE; i++) {
+        for (int j = 0; j < FILES_TO_RECIEVE; j++) {
             SctpChannel sc = SctpChannel.open();
 
-            sc.connect(serverAddr, 0, 0);
+            sc.connect(serverAddr, 0, STREAMS_TO_OPEN);
 
             AssociationHandler assocHandler = new AssociationHandler();
 
-
             ByteBuffer buf = ByteBuffer.allocateDirect(8192);
-            Instant starts = Instant.now();
+
             MessageInfo messageInfo = sc.receive(buf, System.out, assocHandler);
-
+            Instant starts = Instant.now();
             while (messageInfo != null) {
-
-
                 buf.flip();
-                if (buf.remaining() > 0 && messageInfo.streamNumber() == 0) {
+                for (int i = 0; i < STREAMS_TO_OPEN; i++) {
+                    if (buf.remaining() > 0 && messageInfo.streamNumber() == i) {
 
-                    byte[] myBytes = new byte[buf.remaining()];
-                    buf.get(myBytes, 0, myBytes.length);
-                    try (FileOutputStream fos = new FileOutputStream(file, true)) {
-                        fos.write(myBytes);
+                        byte[] myBytes = new byte[buf.remaining()];
+                        buf.get(myBytes, 0, myBytes.length);
+                        try (FileOutputStream fos = new FileOutputStream(FILE_TO_RECIEVE + "." + i, false)) {
+                            fos.write(myBytes);
+                        }
+                        break;
                     }
                 }
                 buf.clear();
-
+                Instant test = Instant.now();
                 messageInfo = sc.receive(buf, System.out, assocHandler);
-
-
+                Instant test2 = Instant.now();
+                Duration durtest = Duration.between(test, test2);
+                durAccTest = durAccTest.plus(durtest);
             }
-            sc.close();
             Instant ends = Instant.now();
+            sc.close();
             Duration duration = Duration.between(starts, ends);
-            System.out.println("\n\nFILE "+i);
-            System.out.println("ReceiveTime: " + duration.toMillis());
-            System.out.println("File lenght: " + file.length());
 
-            float fish = (float) file.length() / duration.toMillis();
-            file.delete();
+            long test = duration.toMillis();
+            out.write(test + "\n");
 
+            System.out.println("ReceiveTime: " + duration.toMillis() + "ms\n");
+
+            for (int k = 0; k < STREAMS_TO_OPEN; k++) {
+                File deleteFile = new File(FILE_TO_RECIEVE + "." + k);
+                deleteFile.delete();
+            }
 
         }
+        out.close();
+        double fish = 100000 * FILES_TO_RECIEVE;
+        double nano = durAccTest.toNanos();
+        double nanoPerByte = fish / nano;
+        nanoPerByte = nanoPerByte * 10000;
+        System.out.println(nanoPerByte + " MB/sec");
 
-        done = Instant.now();
-        timeForAllFiles = Duration.between(firstConnect, done);
-        System.out.println("Time to get all files: "+ timeForAllFiles.toMillis()+ "ms");
+        System.out.println(durAccTest.toMillis()+"ms to recieve all files");
     }
 
     static class AssociationHandler extends AbstractNotificationHandler<PrintStream> {
@@ -83,7 +87,7 @@ public class SCTPMultiClient extends Thread {
             if (not.event().equals(COMM_UP)) {
                 int outbound = not.association().maxOutboundStreams();
                 int inbound = not.association().maxInboundStreams();
-              //   stream.printf("New association setup with %d outbound streams" + ", and %d inbound streams.\n", outbound, inbound);
+                //   stream.printf("New association setup with %d outbound streams" + ", and %d inbound streams.\n", outbound, inbound);
             }
 
             return HandlerResult.CONTINUE;
