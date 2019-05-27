@@ -20,8 +20,8 @@ public class SCTPMultiServer {
     static int SERVER_PORT = 4477;
     static String PATH_TO_FILES = "FilesToSend/";
     static String FILE_TO_SEND = "fish100";
-    static int PACKET_SIZE = 10000;
-
+    static int PACKET_SIZE = 16384;
+    static double packetSizeDouble = 16384.0;
 
     public static void serverRun() throws IOException {
 
@@ -29,20 +29,22 @@ public class SCTPMultiServer {
         InetSocketAddress serverAddr = new InetSocketAddress(SERVER_PORT);
         ssc.bind(serverAddr);
         ssc.setOption(SCTP_INIT_MAXSTREAMS, SctpStandardSocketOptions.InitMaxStreams.create(0, 100));
+int counter = 0;
 
         while (true) {
             System.out.println("Waiting for connection");
             SctpChannel sc = ssc.accept();
+
             int FILES_TO_SEND = sc.association().maxOutboundStreams();
-            System.out.println("Out streams: " + sc.association().maxOutboundStreams());
+            System.out.println(counter++);
             splitFile(new File(PATH_TO_FILES + FILE_TO_SEND), FILES_TO_SEND);
             File[] files = new File[FILES_TO_SEND];
             long[] fileSize = new long[FILES_TO_SEND];
             int[] bytesLeft = new int[FILES_TO_SEND];
             int[] bytesSent = new int[FILES_TO_SEND];
-            float[] packetsToSend = new float[FILES_TO_SEND];
+            double[] packetsToSend = new double[FILES_TO_SEND];
             byte[][] byteArray = new byte[FILES_TO_SEND][];
-            double packetSizeDouble = 10240;
+ 
 
 
             for (int i = 0; i < FILES_TO_SEND; i++) {
@@ -52,7 +54,7 @@ public class SCTPMultiServer {
                 BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(files[i]));
                 bufferedInputStream.read(byteArray[i], 0, byteArray[i].length);
                 bytesLeft[i] = (int) fileSize[i];
-                packetsToSend[i] = (float) Math.ceil(fileSize[i] / packetSizeDouble);
+                packetsToSend[i] = (double) Math.ceil(fileSize[i] / packetSizeDouble);
 
             }
 
@@ -90,6 +92,7 @@ public class SCTPMultiServer {
                     Instant end = Instant.now();
                     System.out.println("Time to process: "+Duration.between(start,end));
                 }
+sc.shutdown();
                 sc.close();
                 System.out.println("Files sent");
                 for (int i = 0; i < FILES_TO_SEND; i++){
