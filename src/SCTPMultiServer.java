@@ -7,11 +7,12 @@ import java.io.*;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.ClosedChannelException;
+import java.nio.channels.ClosedByInterruptException;
 import java.time.Duration;
 import java.time.Instant;
 
 import static com.sun.nio.sctp.SctpStandardSocketOptions.SCTP_INIT_MAXSTREAMS;
-import static com.sun.nio.sctp.SctpStandardSocketOptions.SO_SNDBUF;
+import static com.sun.nio.sctp.SctpStandardSocketOptions.*;
 
 
 public class SCTPMultiServer {
@@ -19,9 +20,9 @@ public class SCTPMultiServer {
     private File myFile;
     static int SERVER_PORT = 4477;
     static String PATH_TO_FILES = "FilesToSend/";
-    static String FILE_TO_SEND = "fish1";
+    static String FILE_TO_SEND = "fishy10";
     static int PACKET_SIZE = 12000;
-    static double packetSizeDouble = 12000;
+    static double packetSizeDouble = 12000.0;
 
     public static void serverRun() throws IOException {
 
@@ -34,73 +35,55 @@ int counter = 0;
         while (true) {
             System.out.println("Waiting for connection");
             SctpChannel sc = ssc.accept();
-
+			System.out.println("Connecton accepted! " + sc.getOption(SO_RCVBUF) +" : " +sc.getOption(SO_SNDBUF) );
             int FILES_TO_SEND = sc.association().maxOutboundStreams();
             System.out.println(counter++);
-          //  splitFile(new File(PATH_TO_FILES + FILE_TO_SEND), FILES_TO_SEND);
-            File[] files = new File[FILES_TO_SEND];
-            long[] fileSize = new long[FILES_TO_SEND];
-            int[] bytesLeft = new int[FILES_TO_SEND];
+			
+           int[] bytesLeft = new int[FILES_TO_SEND];
             int[] bytesSent = new int[FILES_TO_SEND];
-            double[] packetsToSend = new double[FILES_TO_SEND];
-            byte[][] byteArray = new byte[FILES_TO_SEND][];
- 
-
-
-            for (int i = 0; i < FILES_TO_SEND; i++) {
-                files[i] = new File(PATH_TO_FILES + FILE_TO_SEND);
-                fileSize[i] = files[i].length();
-                byteArray[i] = new byte[(int) fileSize[i]];
-                BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(files[i]));
-                bufferedInputStream.read(byteArray[i], 0, byteArray[i].length);
-                bytesLeft[i] = (int) fileSize[i];
-                packetsToSend[i] = (double) Math.ceil(fileSize[i] / packetSizeDouble);
-
+            float[] packetsToSend = new float[FILES_TO_SEND];
+		
+			File file = new File(PATH_TO_FILES + FILE_TO_SEND);
+			long fileSize = file.length();
+			byte[] byteArray = new byte[(int) fileSize];
+            BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
+            bufferedInputStream.read(byteArray, 0, byteArray.length);
+         
+		 for (int i = 0; i < FILES_TO_SEND; i++) {
+                bytesLeft[i] = (int) fileSize;
+				packetsToSend[i] = (float) Math.ceil(fileSize/ packetSizeDouble);
             }
-            Duration test = Duration.ZERO;
             ByteBuffer buf = ByteBuffer.allocateDirect(PACKET_SIZE);
-
+			Instant done;
+			Instant now = Instant.now();
+			System.out.println(FILES_TO_SEND);
             try {
                 MessageInfo messageInfo = MessageInfo.createOutgoing(null, 0);
 
                 for (int i = 0; i < FILES_TO_SEND; i++) {
-
-                    bytesLeft[i] = (int) fileSize[i];
-                    // bytesSent[i] = 0;
-
                     for (int j = 0; j < packetsToSend[i]; j++) {
-                        Instant start = Instant.now();
                         if (bytesLeft[i] < PACKET_SIZE) {
-                           ByteBuffer otherTest = ByteBuffer.wrap(byteArray[i], bytesSent[i], bytesLeft[i]);
+                           ByteBuffer otherTest = ByteBuffer.wrap(byteArray, bytesSent[i], bytesLeft[i]);
                             messageInfo.streamNumber(i);
-                            Instant fishstart = Instant.now();
+							messageInfo.complete(true);
                             sc.send(otherTest, messageInfo);
-                            Instant fishend = Instant.now();
-                            System.out.println("Time to send: "+Duration.between(fishstart,fishend));
-                            bytesSent[i] += bytesLeft[i];
-                            bytesLeft[i] -= bytesLeft[i];
+							break;
                         } else {
                             messageInfo.streamNumber(i);
-                            ByteBuffer testingBuff = buf.get(byteArray[i], bytesSent[i], PACKET_SIZE).flip();
-
-                            Instant fishstart = Instant.now();
+                            ByteBuffer testingBuff = buf.get(byteArray, bytesSent[i], PACKET_SIZE).flip();
                             sc.send(testingBuff, messageInfo);
-                            Instant fishend = Instant.now();
-                            System.out.println("Time to send: "+Duration.between(fishstart,fishend));
                             bytesSent[i] += PACKET_SIZE;
                             bytesLeft[i] -= PACKET_SIZE;
                         }
-
-
                         buf.clear();
                     }
-
                 }
+				done = Instant.now();
+				System.out.println(Duration.between(now, done));
+				sc.close();
 
-                sc.shutdown();
-                sc.close();
                 System.out.println("Files sent");
-              /*  for (int i = 0; i < FILES_TO_SEND; i++){
+             /*  for (int i = 0; i < FILES_TO_SEND; i++){
                    files[i].delete();
                 }*/
 
