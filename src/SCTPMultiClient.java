@@ -34,9 +34,8 @@ public class SCTPMultiClient {
             sc.setOption(SO_RCVBUF, sc.getOption(SO_RCVBUF) * 2);
             sc.setOption(SO_SNDBUF, sc.getOption(SO_SNDBUF) * 2);
 
-
-            sc.connect(serverAddr, 0, STREAMS_TO_OPEN);
 			Instant inst = Instant.now();
+            sc.connect(serverAddr, 0, STREAMS_TO_OPEN);
             AssociationHandler assocHandler = new AssociationHandler();
 			Duration getTime = Duration.ZERO;
 			MessageInfo messageInfo = sc.receive(buf, System.out, assocHandler);
@@ -62,8 +61,8 @@ public class SCTPMultiClient {
             System.out.println();
             sc.setOption(SO_RCVBUF, sc.getOption(SO_RCVBUF) * 2);
             sc.setOption(SO_SNDBUF, sc.getOption(SO_SNDBUF) * 2);
-			sc.connect(serverAddr, 0, STREAMS_TO_OPEN);
 			inst = Instant.now();
+			sc.connect(serverAddr, 0, STREAMS_TO_OPEN);
 			assocHandler = new AssociationHandler();
 			getTime = Duration.ZERO;
 			}
@@ -90,11 +89,11 @@ public class SCTPMultiClient {
 	
                 messageInfo = sc.receive(cont, System.out, assocHandler);
             }
+            sc.close();
 			Instant last = Instant.now();
 			getTime = Duration.between(inst,last);
-            sc.close();
-
-			onlyRecieve = onlyRecieve.plus(Duration.between(inst,last));		
+			
+			onlyRecieve = onlyRecieve.plus(getTime);		
             long test = getTime.toMillis();
             resultOut.write(test + "\n");
 			System.out.println("Receive time: "+getTime.toMillis());
