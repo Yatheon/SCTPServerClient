@@ -20,11 +20,11 @@ public class SCTPMultiServer {
     private File myFile;
     static int SERVER_PORT = 4477;
     static String PATH_TO_FILES = "FilesToSend/";
-    static String FILE_TO_SEND = "fishy10";
-    static int PACKET_SIZE = 12000;
-    static double packetSizeDouble = 12000.0;
+    //static String FILE_TO_SEND = "fishy10";
+    static int PACKET_SIZE = 8000;
+    static double packetSizeDouble = 8000.0;
 
-    public static void serverRun() throws IOException {
+    public static void serverRun(String FILE_TO_SEND) throws IOException {
 
         SctpServerChannel ssc = SctpServerChannel.open();
         InetSocketAddress serverAddr = new InetSocketAddress(SERVER_PORT);
