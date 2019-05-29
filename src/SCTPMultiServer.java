@@ -1,7 +1,4 @@
-import com.sun.nio.sctp.MessageInfo;
-import com.sun.nio.sctp.SctpChannel;
-import com.sun.nio.sctp.SctpServerChannel;
-import com.sun.nio.sctp.SctpStandardSocketOptions;
+import com.sun.nio.sctp.*;
 
 import java.io.*;
 import java.net.InetSocketAddress;
@@ -11,76 +8,89 @@ import java.nio.channels.ClosedByInterruptException;
 import java.time.Duration;
 import java.time.Instant;
 
-import static com.sun.nio.sctp.SctpStandardSocketOptions.SCTP_INIT_MAXSTREAMS;
 import static com.sun.nio.sctp.SctpStandardSocketOptions.*;
-
+import static com.sun.nio.sctp.AssociationChangeNotification.AssocChangeEvent.COMM_UP;
 
 public class SCTPMultiServer {
     private SctpChannel sc;
     private File myFile;
     static int SERVER_PORT = 4477;
     static String PATH_TO_FILES = "FilesToSend/";
-    //static String FILE_TO_SEND = "fishy10";
-    static int PACKET_SIZE = 8000;
-    static double packetSizeDouble = 8000.0;
+
+    static int PACKET_SIZE = 20000;
+    static double packetSizeDouble = 20000.0;
 
     public static void serverRun(String FILE_TO_SEND) throws IOException {
-
-        SctpServerChannel ssc = SctpServerChannel.open();
+		File file = new File(PATH_TO_FILES + FILE_TO_SEND);
+		long fileSize = file.length();
+		SctpServerChannel ssc = SctpServerChannel.open();
         InetSocketAddress serverAddr = new InetSocketAddress(SERVER_PORT);
         ssc.bind(serverAddr);
         ssc.setOption(SCTP_INIT_MAXSTREAMS, SctpStandardSocketOptions.InitMaxStreams.create(0, 100));
-int counter = 0;
+		int counter = 0;
+
+
 
         while (true) {
             System.out.println("Waiting for connection");
             SctpChannel sc = ssc.accept();
-			System.out.println("Connecton accepted! " + sc.getOption(SO_RCVBUF) +" : " +sc.getOption(SO_SNDBUF) );
-            int FILES_TO_SEND = sc.association().maxOutboundStreams();
+			Instant done;
+			Instant now = Instant.now();
+			AssociationHandler assocHandler = new AssociationHandler();
+			MessageInfo messageInfo = MessageInfo.createOutgoing(null, 0);
+
+		   int FILES_TO_SEND = sc.association().maxOutboundStreams();
+			
+			System.out.println("Streams: "+FILES_TO_SEND);
             System.out.println(counter++);
 			
-           int[] bytesLeft = new int[FILES_TO_SEND];
+			int[] bytesLeft = new int[FILES_TO_SEND];
             int[] bytesSent = new int[FILES_TO_SEND];
-            float[] packetsToSend = new float[FILES_TO_SEND];
-		
-			File file = new File(PATH_TO_FILES + FILE_TO_SEND);
-			long fileSize = file.length();
+            int[] packetsToSend = new int[FILES_TO_SEND];
 			byte[] byteArray = new byte[(int) fileSize];
+			
+			
             BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
             bufferedInputStream.read(byteArray, 0, byteArray.length);
          
 		 for (int i = 0; i < FILES_TO_SEND; i++) {
                 bytesLeft[i] = (int) fileSize;
-				packetsToSend[i] = (float) Math.ceil(fileSize/ packetSizeDouble);
+				float temp = (float) Math.ceil(fileSize/ packetSizeDouble);
+				packetsToSend[i]  = (int)temp;
             }
             ByteBuffer buf = ByteBuffer.allocateDirect(PACKET_SIZE);
-			Instant done;
-			Instant now = Instant.now();
-			System.out.println(FILES_TO_SEND);
+
+	
             try {
-                MessageInfo messageInfo = MessageInfo.createOutgoing(null, 0);
+         
 
                 for (int i = 0; i < FILES_TO_SEND; i++) {
+				
                     for (int j = 0; j < packetsToSend[i]; j++) {
-                        if (bytesLeft[i] < PACKET_SIZE) {
-                           ByteBuffer otherTest = ByteBuffer.wrap(byteArray, bytesSent[i], bytesLeft[i]);
+						buf.clear();
+                        if (bytesLeft[i] <= PACKET_SIZE) {
+							buf = ByteBuffer.wrap(byteArray, bytesSent[i], bytesLeft[i]);
                             messageInfo.streamNumber(i);
-							messageInfo.complete(true);
-                            sc.send(otherTest, messageInfo);
+                            sc.send(buf, messageInfo);
+	
 							break;
                         } else {
-                            messageInfo.streamNumber(i);
-                            ByteBuffer testingBuff = buf.get(byteArray, bytesSent[i], PACKET_SIZE).flip();
-                            sc.send(testingBuff, messageInfo);
+							buf = ByteBuffer.wrap(byteArray, bytesSent[i], PACKET_SIZE);
+							messageInfo.streamNumber(i);
+							sc.send(buf, messageInfo);
                             bytesSent[i] += PACKET_SIZE;
                             bytesLeft[i] -= PACKET_SIZE;
+		
                         }
                         buf.clear();
                     }
                 }
+
+				sc.shutdown();
+				sc.close();
 				done = Instant.now();
 				System.out.println(Duration.between(now, done));
-				sc.close();
+				//sc.close();
 
                 System.out.println("Files sent");
              /*  for (int i = 0; i < FILES_TO_SEND; i++){
@@ -93,6 +103,7 @@ int counter = 0;
                 break;
             } catch (Exception e) {
                 e.printStackTrace();
+				sc.close();
                 System.out.println("Connection closed");
             }
 
@@ -126,6 +137,24 @@ int counter = 0;
             }
         }
     }
+	static class AssociationHandler extends AbstractNotificationHandler<PrintStream> {
+        public HandlerResult handleNotification(AssociationChangeNotification not,
+                                                PrintStream stream) {
 
+            if (not.event().equals(COMM_UP)) {
+                int outbound = not.association().maxOutboundStreams();
+                int inbound = not.association().maxInboundStreams();
+                //stream.printf("New association setup with %d outbound streams" + ", and %d inbound streams.\n", outbound, inbound);
+            }
+
+            return HandlerResult.CONTINUE;
+        }
+
+        public HandlerResult handleNotification(ShutdownNotification not,
+                                                PrintStream stream) {
+            // stream.printf("The association has been shutdown.\n");
+            return HandlerResult.RETURN;
+        }
+    }
 
 }
