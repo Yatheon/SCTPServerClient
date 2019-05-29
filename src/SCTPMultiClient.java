@@ -16,14 +16,19 @@ public class SCTPMultiClient {
     static int SERVER_PORT = 4477;
     static String FILE_TO_RECIEVE = "fishRecieve";
     static String SERVER_ADDRESS = "169.254.10.219";
+	static long DATA_EACH_FILE = 10000000;
 
-
-    public static void clientRun(int FILES_TO_RECIEVE, int STREAMS_TO_OPEN) throws Exception {
+    public static void clientRun(int STREAMS_TO_OPEN) throws Exception {
+		int CONNECTIONS_OPENED;
 		double FILESIZE_TO_RECIEVE = 100000.0;
          ByteBuffer buf = ByteBuffer.allocate(1000);
 		Duration onlyRecieve = Duration.ZERO;
-    
+		int fileCompleted=0;
 		long[] dataRemaining = new long[STREAMS_TO_OPEN];
+		for(int i = 0; i<STREAMS_TO_OPEN;i++){
+			dataRemaining[i] = DATA_EACH_FILE;
+		}
+
         InetSocketAddress serverAddr = new InetSocketAddress(SERVER_ADDRESS,
                 SERVER_PORT);
 
@@ -42,17 +47,26 @@ public class SCTPMultiClient {
 			buf.flip();
 			for (int i = 0; i < STREAMS_TO_OPEN; i++) {
 						if (buf.remaining() > 0 && messageInfo.streamNumber() == i) {
-							try (FileChannel fos = new FileOutputStream(FILE_TO_RECIEVE + "." + i, true).getChannel()) {
+							try (FileChannel fos = new FileOutputStream(FILE_TO_RECIEVE + "." + i, true).getChannel()) {		
+								dataRemaining[i] -= buf.remaining();
 								fos.write(buf);
 								fos.close();
+							if(dataRemaining[i]<=0)fileCompleted++;
 							}
 							break;
 						}
 			}
 			
-			for (int j = 0; j < FILES_TO_RECIEVE; j++) {
+		Duration elapsedTime  = Duration.ZERO;
+		Instant start = Instant.now();
+		Instant current = Instant.now();
+		CONNECTIONS_OPENED = 0;
+		while(Duration.between(start, current).getSeconds()<80){
+			//for (int j = 0; j < CONNECTIONS_TO_OPEN; j++) {
 			
-			if(j != 0){
+			if(CONNECTIONS_OPENED != 0){
+			for(int i = 0; i<STREAMS_TO_OPEN;i++)dataRemaining[i] = DATA_EACH_FILE;
+			fileCompleted =0;
 			sc = SctpChannel.open();
             System.out.println();
 			inst = Instant.now();
@@ -64,15 +78,17 @@ public class SCTPMultiClient {
 
 			int round = 0;
 			do{
+				if(fileCompleted>=STREAMS_TO_OPEN)break;
 				messageInfo = sc.receive(cont, null, assocHandler);
                 cont.flip();
 				if(cont.remaining()>0){
 					for (int i = 0; i < STREAMS_TO_OPEN; i++) {
 						if (messageInfo.streamNumber() == i) {
 						  try (FileChannel fos = new FileOutputStream(FILE_TO_RECIEVE + "." + i, true).getChannel()) {
-							  
+							  	dataRemaining[i] -= cont.remaining();
 								fos.write(cont);
 								fos.close();
+								if(dataRemaining[i]<=0)fileCompleted++;
 							}
 							break;
 						}
@@ -80,6 +96,7 @@ public class SCTPMultiClient {
 				}
                 cont.clear();
             } while (messageInfo != null) ;
+			
             sc.close();
 			Instant last = Instant.now();
 			getTime = Duration.between(inst,last);
@@ -89,18 +106,20 @@ public class SCTPMultiClient {
   
 			System.out.println("Receive time: "+getTime.toMillis());
 
-		if(j == 0){
-			FILESIZE_TO_RECIEVE = new File(FILE_TO_RECIEVE + "." + 0).length();
-		}
-            for (int k = 0; k < STREAMS_TO_OPEN; k++) {
-                File deleteFile = new File(FILE_TO_RECIEVE + "." + k);
-               deleteFile.delete();
-            }
-
+			if(CONNECTIONS_OPENED == 0){
+				FILESIZE_TO_RECIEVE = new File(FILE_TO_RECIEVE + "." + 0).length();
+			}
+			for (int k = 0; k < STREAMS_TO_OPEN; k++) {
+					File deleteFile = new File(FILE_TO_RECIEVE + "." + k);
+				   deleteFile.delete();
+			}
+			
+		CONNECTIONS_OPENED++;
+		current = Instant.now();
         }
 
- 
-        double totalFileSizeMB = (FILESIZE_TO_RECIEVE * FILES_TO_RECIEVE*STREAMS_TO_OPEN) / 1000000.0;
+		System.out.println("Filessize: " + FILESIZE_TO_RECIEVE + "Streams: " + STREAMS_TO_OPEN + "Connections opened: "+CONNECTIONS_OPENED);
+        double totalFileSizeMB = (FILESIZE_TO_RECIEVE * CONNECTIONS_OPENED*STREAMS_TO_OPEN) / 1000000.0;
         double totalDurationSec = onlyRecieve.toNanos() / 1000000000.0;
         double megaBytePerSec = totalFileSizeMB / totalDurationSec;
 		
